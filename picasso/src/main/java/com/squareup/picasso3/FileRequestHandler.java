@@ -16,8 +16,8 @@
 package com.squareup.picasso3;
 
 import android.content.Context;
-import android.support.media.ExifInterface;
 import android.net.Uri;
+import android.support.media.ExifInterface;
 import java.io.IOException;
 import okio.Okio;
 import okio.Source;
@@ -37,9 +37,13 @@ class FileRequestHandler extends ContentStreamRequestHandler {
     return SCHEME_FILE.equals(data.uri.getScheme());
   }
 
-  @Override public Result load(Request request, int networkPolicy) throws IOException {
-    Source source = Okio.source(getInputStream(request));
-    return new Result(null, source, DISK, getFileExifRotation(request.uri));
+  @Override public void load(Request request, int networkPolicy, Callback callback) {
+    try {
+      Source source = Okio.source(getInputStream(request));
+      callback.onSuccess(new Result(null, source, DISK, getFileExifRotation(request.uri)));
+    } catch (Exception e) {
+      callback.onError(e);
+    }
   }
 
   static int getFileExifRotation(Uri uri) throws IOException {

@@ -65,12 +65,17 @@ class ContactsPhotoRequestHandler extends RequestHandler {
         && matcher.match(data.uri) != UriMatcher.NO_MATCH);
   }
 
-  @Override public Result load(Request request, int networkPolicy) throws IOException {
-    InputStream is = getInputStream(request);
-    if (is == null) {
-      return null;
+  @Override public void load(Request request, int networkPolicy, Callback callback) {
+    try {
+      InputStream is = getInputStream(request);
+      if (is == null) {
+        callback.onError(new IOException("no contact found"));
+      } else {
+        callback.onSuccess(new Result(Okio.source(is), DISK));
+      }
+    } catch (Exception e) {
+      callback.onError(e);
     }
-    return new Result(Okio.source(is), DISK);
   }
 
   private InputStream getInputStream(Request data) throws IOException {

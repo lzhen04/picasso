@@ -18,7 +18,6 @@ package com.squareup.picasso3;
 import android.content.Context;
 import android.content.res.AssetManager;
 import android.net.Uri;
-import java.io.IOException;
 import okio.Okio;
 import okio.Source;
 
@@ -26,7 +25,7 @@ import static android.content.ContentResolver.SCHEME_FILE;
 import static com.squareup.picasso3.Picasso.LoadedFrom.DISK;
 
 class AssetRequestHandler extends RequestHandler {
-  protected static final String ANDROID_ASSET = "android_asset";
+  private static final String ANDROID_ASSET = "android_asset";
   private static final int ASSET_PREFIX_LENGTH =
       (SCHEME_FILE + ":///" + ANDROID_ASSET + "/").length();
 
@@ -44,7 +43,7 @@ class AssetRequestHandler extends RequestHandler {
         && !uri.getPathSegments().isEmpty() && ANDROID_ASSET.equals(uri.getPathSegments().get(0)));
   }
 
-  @Override public Result load(Request request, int networkPolicy) throws IOException {
+  @Override public void load(Request request, int networkPolicy, Callback callback) {
     if (assetManager == null) {
       synchronized (lock) {
         if (assetManager == null) {
@@ -52,8 +51,12 @@ class AssetRequestHandler extends RequestHandler {
         }
       }
     }
-    Source source = Okio.source(assetManager.open(getFilePath(request)));
-    return new Result(source, DISK);
+    try {
+      Source source = Okio.source(assetManager.open(getFilePath(request)));
+      callback.onSuccess(new Result(source, DISK));
+    } catch (Exception e) {
+      callback.onError(e);
+    }
   }
 
   static String getFilePath(Request request) {
