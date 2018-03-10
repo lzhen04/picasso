@@ -36,6 +36,7 @@ import java.util.Collections;
 import java.util.List;
 import okhttp3.Call;
 import okhttp3.Response;
+import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -49,6 +50,7 @@ import static com.squareup.picasso3.Picasso.Priority;
 import static com.squareup.picasso3.Utils.createKey;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -254,7 +256,10 @@ class TestUtils {
     try {
       Bitmap defaultResult = makeBitmap();
       RequestHandler.Result result = new RequestHandler.Result(defaultResult, MEMORY);
-      when(requestHandler.load(any(Request.class), anyInt())).thenReturn(result);
+      ArgumentCaptor<Callback> captor = ArgumentCaptor.forClass(Callback.class);
+      doNothing().when(requestHandler).load(any(Request.class), anyInt(), captor.capture());
+      Callback callback = captor.getValue();
+      callback.onSuccess(result);
       when(requestHandler.canHandleRequest(any(Request.class))).thenReturn(true);
     } catch (IOException e) {
       throw new RuntimeException(e);

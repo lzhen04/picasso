@@ -21,6 +21,7 @@ import android.graphics.Matrix;
 import android.net.NetworkInfo;
 import android.os.Build;
 import android.view.Gravity;
+import com.squareup.picasso3.RequestHandler.Result;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
@@ -74,8 +75,8 @@ class BitmapHunter implements Runnable {
       return true;
     }
 
-    @Override public Result load(Request request, int networkPolicy) throws IOException {
-      throw new IllegalStateException("Unrecognized type of request: " + request);
+    @Override public void load(Request request, int networkPolicy, Callback callback) {
+      callback.onError(new IllegalStateException("Unrecognized type of request: " + request));
     }
   };
 
@@ -216,7 +217,16 @@ class BitmapHunter implements Runnable {
     }
 
     networkPolicy = retryCount == 0 ? NetworkPolicy.OFFLINE.index : networkPolicy;
-    RequestHandler.Result result = requestHandler.load(data, networkPolicy);
+    Result result = requestHandler.load(data, networkPolicy,
+        new Callback() {
+          @Override public void onSuccess(Result result) {
+
+          }
+
+          @Override public void onError(Throwable t) {
+
+          }
+        });
     if (result != null) {
       loadedFrom = result.getLoadedFrom();
       exifOrientation = result.getExifOrientation();

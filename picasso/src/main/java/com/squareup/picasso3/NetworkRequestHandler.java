@@ -42,30 +42,34 @@ final class NetworkRequestHandler extends RequestHandler {
     return (SCHEME_HTTP.equals(scheme) || SCHEME_HTTPS.equals(scheme));
   }
 
-  @Override public Result load(Request request, int networkPolicy) throws IOException {
-    okhttp3.Request callRequest = createRequest(request, networkPolicy);
-    Response response = callFactory.newCall(callRequest).execute();
-    ResponseBody body = response.body();
+  @Override public void load(Request request, int networkPolicy, Callback callback) {
+    try {
+      okhttp3.Request callRequest = createRequest(request, networkPolicy);
+      Response response = callFactory.newCall(callRequest).execute();
+      ResponseBody body = response.body();
 
-    if (!response.isSuccessful()) {
-      body.close();
-      throw new ResponseException(response.code(), request.networkPolicy);
-    }
+      if (!response.isSuccessful()) {
+        body.close();
+        throw new ResponseException(response.code(), request.networkPolicy);
+      }
 
-    // Cache response is only null when the response comes fully from the network. Both completely
-    // cached and conditionally cached responses will have a non-null cache response.
-    Picasso.LoadedFrom loadedFrom = response.cacheResponse() == null ? NETWORK : DISK;
+      // Cache response is only null when the response comes fully from the network. Both completely
+      // cached and conditionally cached responses will have a non-null cache response.
+      Picasso.LoadedFrom loadedFrom = response.cacheResponse() == null ? NETWORK : DISK;
 
-    // Sometimes response content length is zero when requests are being replayed. Haven't found
-    // root cause to this but retrying the request seems safe to do so.
-    if (loadedFrom == DISK && body.contentLength() == 0) {
-      body.close();
-      throw new ContentLengthException("Received response with 0 content-length header.");
+      // Sometimes response content length is zero when requests are being replayed. Haven't found
+      // root cause to this but retrying the request seems safe to do so.
+      if (loadedFrom == DISK && body.contentLength() == 0) {
+        body.close();
+        throw new ContentLengthException("Received response with 0 content-length header.");
+      }
+      if (loadedFrom == NETWORK && body.contentLength() > 0) {
+        stats.dispatchDownloadFinished(body.contentLength());
+      }
+      callback.onSuccess(new Result(body.source(), loadedFrom));
+    } catch (Exception e) {
+      callback.onError(e);
     }
-    if (loadedFrom == NETWORK && body.contentLength() > 0) {
-      stats.dispatchDownloadFinished(body.contentLength());
-    }
-    return new Result(body.source(), loadedFrom);
   }
 
   @Override int getRetryCount() {
